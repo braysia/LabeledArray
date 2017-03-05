@@ -1,25 +1,30 @@
 import numpy as np
 from collections import OrderedDict
 
+
 class LabeledArray(np.ndarray):
     """
     Each rows corresponds to labels, each columns corresponds to cells.
     Underlying data structure can be N-dimensional array. First dimension will be used for labeled array.
-
+    
     Examples:
         >> arr = np.arange(12).reshape((3, 2, 2))
         >> labelarr = np.array([['a1' ,'b1', ''], 
                                 ['a1' ,'b2' , 'c1'], 
                                 ['a1' ,'b2' , 'c2']], dtype=object)
-        >> darr = LabeledArray(arr, labelarr)
+        >> darr = DArray(arr, labelarr)
         >> assert darr['a1'].shape
         (3, 2, 2)
         >> darr['a1', 'b1'].shape
         (2, 2)
         >> darr['a1', 'b2', 'c1']
-        LabeledArray([[4, 5],
-                      [6, 7]])
+        DArray([[4, 5],
+               [6, 7]])
     """
+
+    idx = None
+    label = None
+    
     def __new__(cls, arr=None, label=None, idx=None):
         obj = np.asarray(arr).view(cls)
         obj.label = label
@@ -65,19 +70,29 @@ class LabeledArray(np.ndarray):
             return LabeledArray(np.hstack((self, larr)), self.label)
 
     def save(self, file_name):
-        np.savez_compressed(file_name, self, self.label)
+        extra_fields = set(dir(self)).difference(set(dir(LabeledArray)))
+        data = dict(arr=self, label=self.label)
+        for ef in extra_fields:
+            data[ef] = getattr(self, ef)
+        np.savez_compressed(file_name, **data)
 
     def load(self, file_name):
         if not file_name.endswith('.npz'):
             file_name = file_name + '.npz'
         f = np.load(file_name)
-        arr, label = f['arr_0'], f['arr_1']
-        return LabeledArray(arr, label)
+        arr, label = f['arr'], f['label']
+        la = LabeledArray(arr, label)
+        for key, value in f.iteritems():
+            if not ('arr' == key or 'label' == key):
+                setattr(la, key, value)
+        return la
+        
+
 
 if __name__ == "__main__":
-    # Check for 2D.
+    # Check 2D.
     arr = np.random.rand(3, 100)
-    labelarr = np.array([['a1' ,'b1', ''], 
+    labelarr = np.array([['a1', 'b1', ''], 
                         ['a1' ,'b2' , 'c1'], 
                         ['a1' ,'b2' , 'c2']], dtype=object)
     darr = LabeledArray(arr, labelarr)
@@ -98,3 +113,11 @@ if __name__ == "__main__":
     assert darr['a1', 'b2', 'c1'].shape == (2, 2)
     assert darr.shape == (3, 2, 2)
     assert np.all(darr['a1', 'b2'].label == np.array([['c1'], ['c2']]))
+
+    # can save and load extra fields. add "time" for example.
+    darr.time = np.arange(darr.shape[-1])
+    darr.save('test')
+    cc = LabeledArray().load('test.npz')
+    assert cc.time.shape == (2,)
+
+
