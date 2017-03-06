@@ -34,7 +34,7 @@ class LabeledArray(np.ndarray):
     def __array_finalize__(self, obj):
         if obj is None: return
         self.label = getattr(obj, 'label', None)
-        if hasattr(obj, 'idx') and np.any(self.label):
+        if hasattr(obj, 'idx') and np.any(self.label) and self.ndim > 1:
             self.label = self.label[obj.idx]
             if isinstance(self.label, str):
                 return
