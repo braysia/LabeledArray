@@ -16,3 +16,12 @@ print larr.shape
 print larr['nuc', 'FITC'].shape
 print larr['nuc', 'FITC', 'max_intensity'].shape
 ```
+
+The extra attributes including labels are automatically saved and loaded with the array. 
+```
+larr = LabeledArray(arr, labels)
+larr.time = np.arange(arr.shape[-1])
+larr.save('temp')
+new_larr = LabeledArray().load('temp')
+print new_larr.time
+```
