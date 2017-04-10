@@ -38,10 +38,13 @@ class LabeledArray(np.ndarray):
     def __array_finalize__(self, obj):
         if obj is None: return
         self.labels = getattr(obj, 'labels', None)
-        if hasattr(obj, 'idx') and np.any(self.labels) and self.ndim > 1:
+        if self.labels is None: return
+        if hasattr(obj, 'idx') and self.ndim > 1:
+            if obj.idx is None: return
             if isinstance(obj.idx, int):
                 self.labels = self.labels[obj.idx]
             else:
+                import ipdb;ipdb.set_trace()
                 self.labels = self.labels[obj.idx[0]]
             if isinstance(self.labels, str):
                 return
@@ -136,3 +139,4 @@ if __name__ == "__main__":
     assert cc.time.shape == (2,)
     cc[0:2, :, :]
     cc['a1', 'b1'][0, 0] = 100
+    print cc == 100
