@@ -1,12 +1,13 @@
 import numpy as np
 from collections import OrderedDict
+from utils import sort_labels_and_arr, uniform_list_length
 
 
 class LabeledArray(np.ndarray):
     """
     Each rows corresponds to labels, each columns corresponds to cells.
     Underlying data structure can be N-dimensional array. First dimension will be used for labeled array.
-    
+
     Examples:
         >> arr = np.arange(12).reshape((3, 2, 2))
         >> labelarr = np.array([['a1' ,'b1', ''], 
@@ -23,27 +24,32 @@ class LabeledArray(np.ndarray):
     """
 
     idx = None
-    label = None
-    
-    def __new__(cls, arr=None, label=None, idx=None):
+    labels = None
+
+    def __new__(cls, arr=None, labels=None, idx=None):
         obj = np.asarray(arr).view(cls)
-        obj.label = label
+        if not isinstance(labels, np.ndarray) and labels is not None:
+            labels, arr = sort_labels_and_arr(labels, arr)
+            labels = np.array(uniform_list_length(labels), dtype=object)
+        obj.labels = labels
         obj.idx = idx
         return obj
-    
+
     def __array_finalize__(self, obj):
         if obj is None: return
-        self.label = getattr(obj, 'label', None)
-        if hasattr(obj, 'idx') and np.any(self.label) and self.ndim > 1:
-            self.label = self.label[obj.idx]
-            if isinstance(self.label, str):
+        self.labels = getattr(obj, 'labels', None)
+        if hasattr(obj, 'idx') and np.any(self.labels) and self.ndim > 1:
+            if isinstance(obj.idx, int):
+                self.labels = self.labels[obj.idx]
+            else:
+                self.labels = self.labels[obj.idx[0]]
+            if isinstance(self.labels, str):
                 return
-            if self.label.ndim > 1:
+            if self.labels.ndim > 1:
                 f_leftshift = lambda a1:all(x>=y for x, y in zip(a1, a1[1:]))
-                all_column = np.all(self.label == self.label[0,:], axis=0)
+                all_column = np.all(self.labels == self.labels[0,:], axis=0)
                 sl = 0 if not f_leftshift(all_column) else all_column.sum()
-                self.label = self.label[:, slice(sl, None)]
-
+                self.labels = self.labels[:, slice(sl, None)]
 
     def __getitem__(self, item):
         if isinstance(item, str):
@@ -57,21 +63,29 @@ class LabeledArray(np.ndarray):
 
     def _label2idx(self, item):
         item = (item, ) if not isinstance(item, tuple) else item
-        boolarr = np.ones(self.label.shape[0], dtype=bool)
+        boolarr = np.ones(self.labels.shape[0], dtype=bool)
         for num, it in enumerate(item):
-            boolarr = boolarr * (self.label[:, num]==it)
-        return np.where(boolarr)
+            boolarr = boolarr * (self.labels[:, num]==it)
+        tidx = np.where(boolarr)[0]
+        if boolarr.sum() == 1:
+            return tuple(tidx)
+        if boolarr.all():
+            return (slice(None, None, None), ) + (slice(None, None, None), ) * (self.ndim - 1)
+        minidx = min(tidx) if min(tidx) > 0 else None
+        maxidx = max(tidx) if max(tidx) < self.shape[0] - 1 else None
+        if boolarr.sum() > 1:
+            return (slice(minidx, maxidx, None), ) + (slice(None, None, None), ) * (self.ndim - 1)
 
     def vstack(self, larr):
-        return LabeledArray(np.vstack((self, larr)), np.vstack((self.label, larr.label)))
+        return LabeledArray(np.vstack((self, larr)), np.vstack((self.labels, larr.label)))
 
     def hstack(self, larr):
-        if (self.label == larr.label).all():
-            return LabeledArray(np.hstack((self, larr)), self.label)
+        if (self.labels == larr.label).all():
+            return LabeledArray(np.hstack((self, larr)), self.labels)
 
     def save(self, file_name):
         extra_fields = set(dir(self)).difference(set(dir(LabeledArray)))
-        data = dict(arr=self, label=self.label)
+        data = dict(arr=self, labels=self.labels)
         for ef in extra_fields:
             data[ef] = getattr(self, ef)
         np.savez_compressed(file_name, **data)
@@ -80,13 +94,12 @@ class LabeledArray(np.ndarray):
         if not file_name.endswith('.npz'):
             file_name = file_name + '.npz'
         f = np.load(file_name)
-        arr, label = f['arr'], f['label']
-        la = LabeledArray(arr, label)
+        arr, labels = f['arr'], f['labels']
+        la = LabeledArray(arr, labels)
         for key, value in f.iteritems():
-            if not ('arr' == key or 'label' == key):
+            if not ('arr' == key or 'labels' == key):
                 setattr(la, key, value)
         return la
-        
 
 
 if __name__ == "__main__":
@@ -112,12 +125,14 @@ if __name__ == "__main__":
     assert darr['a1', 'b2'].shape == (2, 2, 2)
     assert darr['a1', 'b2', 'c1'].shape == (2, 2)
     assert darr.shape == (3, 2, 2)
-    assert np.all(darr['a1', 'b2'].label == np.array([['c1'], ['c2']]))
+    assert darr[1:, :, :].shape == (2, 2, 2)
+    assert darr[1, :, :].shape == (2, 2)
+    assert np.all(darr['a1', 'b2'].labels == np.array([['c1'], ['c2']]))
 
     # can save and load extra fields. add "time" for example.
     darr.time = np.arange(darr.shape[-1])
     darr.save('test')
     cc = LabeledArray().load('test.npz')
     assert cc.time.shape == (2,)
-
-
+    cc[0:2, :, :]
+    cc['a1', 'b1'][0, 0] = 100
