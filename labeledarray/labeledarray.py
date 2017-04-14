@@ -79,10 +79,14 @@ class LabeledArray(np.ndarray):
             return (slice(minidx, maxidx, None), ) + (slice(None, None, None), ) * (self.ndim - 1)
 
     def vstack(self, larr):
-        return LabeledArray(np.vstack((self, larr)), np.vstack((self.labels, larr.label)))
+        """merging first dimension (more labels)
+        """
+        return LabeledArray(np.vstack((self, larr)), np.vstack((self.labels, larr.labels)))
 
     def hstack(self, larr):
-        if (self.labels == larr.label).all():
+        """merging second dimension (more cells)
+        """
+        if (self.labels == larr.labels).all():
             return LabeledArray(np.hstack((self, larr)), self.labels)
 
     def save(self, file_name):
@@ -139,3 +143,6 @@ if __name__ == "__main__":
     cc[0:2, :, :]
     cc['a1', 'b1'][0, 0] = 100
     assert np.sum(cc == 100) == 1
+
+    assert darr.vstack(darr).shape == (2 * darr.shape[0], darr.shape[1], darr.shape[2])
+    assert darr.hstack(darr).shape == (darr.shape[0], 2 * darr.shape[1], darr.shape[2])
