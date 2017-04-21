@@ -1,3 +1,7 @@
+"""
+TODO: check if labels is unique.
+
+"""
 import numpy as np
 from collections import OrderedDict
 from utils import sort_labels_and_arr, uniform_list_length
