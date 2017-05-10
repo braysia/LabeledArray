@@ -31,10 +31,10 @@ class LabeledArray(np.ndarray):
     labels = None
 
     def __new__(cls, arr=None, labels=None, idx=None):
-        obj = np.asarray(arr).view(cls)
         if not isinstance(labels, np.ndarray) and labels is not None:
             labels, arr = sort_labels_and_arr(labels, arr)
             labels = np.array(uniform_list_length(labels), dtype=object)
+        obj = np.asarray(arr).view(cls)
         obj.labels = labels
         obj.idx = idx
         return obj
