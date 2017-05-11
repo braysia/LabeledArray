@@ -31,8 +31,10 @@ class LabeledArray(np.ndarray):
     labels = None
 
     def __new__(cls, arr=None, labels=None, idx=None):
+        if arr is None:
+            return np.asarray(arr).view(cls)
+        labels, arr = sort_labels_and_arr(labels, arr)
         if not isinstance(labels, np.ndarray) and labels is not None:
-            labels, arr = sort_labels_and_arr(labels, arr)
             labels = np.array(uniform_list_length(labels), dtype=object)
         obj = np.asarray(arr).view(cls)
         obj.labels = labels
@@ -85,6 +87,9 @@ class LabeledArray(np.ndarray):
     def vstack(self, larr):
         """merging first dimension (more labels)
         """
+        if self.ndim > larr.ndim:
+            larr = np.expand_dims(larr, axis=0)
+        print larr.shape
         return LabeledArray(np.vstack((self, larr)), np.vstack((self.labels, larr.labels)))
 
     def hstack(self, larr):
@@ -100,12 +105,13 @@ class LabeledArray(np.ndarray):
             data[ef] = getattr(self, ef)
         np.savez_compressed(file_name, **data)
 
-    def load(self, file_name):
+    @classmethod
+    def load(cls, file_name):
         if not file_name.endswith('.npz'):
             file_name = file_name + '.npz'
         f = np.load(file_name)
         arr, labels = f['arr'], f['labels']
-        la = LabeledArray(arr, labels)
+        la = cls(arr, labels)
         for key, value in f.iteritems():
             if not ('arr' == key or 'labels' == key):
                 setattr(la, key, value)
@@ -150,3 +156,5 @@ if __name__ == "__main__":
 
     assert darr.vstack(darr).shape == (2 * darr.shape[0], darr.shape[1], darr.shape[2])
     assert darr.hstack(darr).shape == (darr.shape[0], 2 * darr.shape[1], darr.shape[2])
+
+
