@@ -89,7 +89,6 @@ class LabeledArray(np.ndarray):
         """
         if self.ndim > larr.ndim:
             larr = np.expand_dims(larr, axis=0)
-        print larr.shape
         return LabeledArray(np.vstack((self, larr)), np.vstack((self.labels, larr.labels)))
 
     def hstack(self, larr):
