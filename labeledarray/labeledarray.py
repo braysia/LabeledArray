@@ -127,16 +127,6 @@ if __name__ == "__main__":
                         ['a1' ,'b2' , 'c1'], 
                         ['a1' ,'b2' , 'c2']], dtype=object)
     darr = LabeledArray(arr, labelarr)
-    import xarray as xr
-    import ipdb;ipdb.set_trace()
-    da = xr.DataArray(arr, coords={'x':labelarr}, dims=('x', 'y', 'z'))
-
-
-
-    print darr['a1', 'b2', 'c1'].labels
-    te = darr['a1', 'b2', 'c1']
-    import ipdb;ipdb.set_trace()
-    print te[3:5]
     # stop
     assert darr['a1'].shape == (3, 100)
     assert darr['a1', 'b1'].shape == (100, )
