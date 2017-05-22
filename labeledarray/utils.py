@@ -10,7 +10,6 @@ def sort_labels_and_arr(labels, arr=[]):
     >>> sort_labels_and_arr(labels)
     [['a', 'B', '1'], ['aprop'], ['b', 'B', '2'], ['prop']]
     '''
-
     labels = [list(i) for i in labels]
     labels, sort_idx = sort_multi_lists(labels)
     if not len(arr):

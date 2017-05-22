@@ -45,7 +45,7 @@ class LabeledArray(np.ndarray):
         if obj is None: return
         self.labels = getattr(obj, 'labels', None)
         if self.labels is None: return
-        if hasattr(obj, 'idx') and self.ndim > 1:
+        if hasattr(obj, 'idx') and self.ndim >= 1:
             if obj.idx is None: return
             if isinstance(obj.idx, int):
                 self.labels = self.labels[obj.idx]
@@ -58,6 +58,9 @@ class LabeledArray(np.ndarray):
                 all_column = np.all(self.labels == self.labels[0,:], axis=0)
                 sl = 0 if not f_leftshift(all_column) else all_column.sum()
                 self.labels = self.labels[:, slice(sl, None)]
+            if self.labels.ndim == 1:
+                self.labels = None
+                obj = np.array(obj)
 
     def __getitem__(self, item):
         if isinstance(item, str):
@@ -98,7 +101,7 @@ class LabeledArray(np.ndarray):
             return LabeledArray(np.hstack((self, larr)), self.labels)
 
     def save(self, file_name):
-        extra_fields = set(dir(self)).difference(set(dir(LabeledArray)))
+        extra_fields = set(dir(self)).difference(set(dir(self.__class__)))
         data = dict(arr=self, labels=self.labels)
         for ef in extra_fields:
             data[ef] = getattr(self, ef)
@@ -110,7 +113,7 @@ class LabeledArray(np.ndarray):
             file_name = file_name + '.npz'
         f = np.load(file_name)
         arr, labels = f['arr'], f['labels']
-        la = cls(arr, labels)
+        la = LabeledArray(arr, labels)
         for key, value in f.iteritems():
             if not ('arr' == key or 'labels' == key):
                 setattr(la, key, value)
@@ -124,6 +127,17 @@ if __name__ == "__main__":
                         ['a1' ,'b2' , 'c1'], 
                         ['a1' ,'b2' , 'c2']], dtype=object)
     darr = LabeledArray(arr, labelarr)
+    import xarray as xr
+    import ipdb;ipdb.set_trace()
+    da = xr.DataArray(arr, coords={'x':labelarr}, dims=('x', 'y', 'z'))
+
+
+
+    print darr['a1', 'b2', 'c1'].labels
+    te = darr['a1', 'b2', 'c1']
+    import ipdb;ipdb.set_trace()
+    print te[3:5]
+    # stop
     assert darr['a1'].shape == (3, 100)
     assert darr['a1', 'b1'].shape == (100, )
     assert darr['a1', 'b2'].shape == (2, 100)
