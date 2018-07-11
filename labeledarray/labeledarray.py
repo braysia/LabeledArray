@@ -121,6 +121,12 @@ class LabeledArray(np.ndarray):
 
 
 if __name__ == "__main__":
+    arr = np.eye(3)
+    labels = np.array([['a', 'A'],['a', 'B'],['b', 'A']], dtype=object)
+    larr = LabeledArray(arr, labels)
+    assert larr['a'].shape == (2, 3)
+    assert larr['a', 'B'].shape == (3, )
+
     # Check 2D.
     arr = np.random.rand(3, 100)
     labelarr = np.array([['a1', 'b1', ''], 
@@ -159,4 +165,3 @@ if __name__ == "__main__":
 
     assert darr.vstack(darr).shape == (2 * darr.shape[0], darr.shape[1], darr.shape[2])
     assert darr.hstack(darr).shape == (darr.shape[0], 2 * darr.shape[1], darr.shape[2])
-
