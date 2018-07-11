@@ -76,14 +76,14 @@ class LabeledArray(np.ndarray):
         item = (item, ) if not isinstance(item, tuple) else item
         boolarr = np.ones(self.labels.shape[0], dtype=bool)
         for num, it in enumerate(item):
-            boolarr = boolarr * (self.labels[:, num]==it)
+            boolarr = boolarr * (self.labels[:, num] == it)
         tidx = np.where(boolarr)[0]
         if boolarr.sum() == 1:
             return tuple(tidx)
         if boolarr.all():
             return (slice(None, None, None), ) + (slice(None, None, None), ) * (self.ndim - 1)
         minidx = min(tidx) if min(tidx) > 0 else None
-        maxidx = max(tidx) if max(tidx) < self.shape[0] - 1 else None
+        maxidx = max(tidx)+1 if max(tidx)+1 < self.shape[0] else None
         if boolarr.sum() > 1:
             return (slice(minidx, maxidx, None), ) + (slice(None, None, None), ) * (self.ndim - 1)
 
@@ -124,8 +124,8 @@ if __name__ == "__main__":
     # Check 2D.
     arr = np.random.rand(3, 100)
     labelarr = np.array([['a1', 'b1', ''], 
-                        ['a1' ,'b2' , 'c1'], 
-                        ['a1' ,'b2' , 'c2']], dtype=object)
+                        ['a1','b2', 'c1'], 
+                        ['a1','b2', 'c2']], dtype=object)
     darr = LabeledArray(arr, labelarr)
     # stop
     assert darr['a1'].shape == (3, 100)
@@ -135,9 +135,9 @@ if __name__ == "__main__":
 
     # check 3D.
     arr = np.arange(12).reshape((3, 2, 2))
-    labelarr = np.array([['a1' ,'b1', ''], 
-                        ['a1' ,'b2' , 'c1'], 
-                        ['a1' ,'b2' , 'c2']], dtype=object)
+    labelarr = np.array([['a1','b1', ''], 
+                        ['a1','b2', 'c1'], 
+                        ['a1','b2', 'c2']], dtype=object)
     darr = LabeledArray(arr, labelarr)
     assert darr['a1'].shape == (3, 2, 2)
     assert darr['a1', 'b1'].shape == (2, 2)
@@ -159,5 +159,4 @@ if __name__ == "__main__":
 
     assert darr.vstack(darr).shape == (2 * darr.shape[0], darr.shape[1], darr.shape[2])
     assert darr.hstack(darr).shape == (darr.shape[0], 2 * darr.shape[1], darr.shape[2])
-
 
